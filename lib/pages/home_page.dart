@@ -1,0 +1,39 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  Widget build(BuildContext context) {
+    final authService = context.read<AuthService>();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Calendário Compartilhado'),
+        actions: [
+          IconButton(
+            onPressed: () async {
+              await authService.logout();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  Navigator.of(context).pushReplacementNamed('/');
+                }
+              });
+            },
+            icon: const Icon(Icons.logout),
+          ),
+        ],
+      ),
+      body: const Center(
+        child: Text('Bem-vindo ao Calendário Compartilhado!'),
+      ),
+    );
+  }
+}
