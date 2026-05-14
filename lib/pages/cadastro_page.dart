@@ -44,9 +44,7 @@ class _CadastroPageState extends State<CadastroPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cadastro'),
-      ),
+      appBar: AppBar(title: const Text('Cadastro')),
       body: Consumer<CadastroViewModel>(
         builder: (context, viewModel, child) {
           return Padding(

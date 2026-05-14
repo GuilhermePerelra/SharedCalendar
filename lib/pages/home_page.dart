@@ -3,6 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../models/event.dart';
 import '../services/event_service.dart';
 import '../services/auth_service.dart';
+import '../services/event_share_service.dart';
 import '../widgets/event_list_item.dart';
 import '../widgets/create_event_bottom_sheet.dart';
 
@@ -16,6 +17,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final EventService _eventService = EventService();
   final AuthService _authService = AuthService();
+  final EventShareService _shareService = EventShareService();
 
   DateTime _focusedMonth = DateTime.now();
   DateTime? _selectedDay;
@@ -50,6 +52,125 @@ class _HomePageState extends State<HomePage> {
     return _getEventsForDay(_selectedDay!);
   }
 
+  Future<void> _showShareDialog() async {
+    final loginController = TextEditingController();
+
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Compartilhar calendário'),
+        content: TextField(
+          controller: loginController,
+          decoration: const InputDecoration(
+            labelText: 'Login do usuário',
+            hintText: 'usuario',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final login = loginController.text.trim();
+              if (login.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Login obrigatório')),
+                );
+                return;
+              }
+
+              try {
+                await _shareService.shareWith(login);
+                if (!mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Calendário compartilhado com sucesso'),
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erro: ${e.toString()}')),
+                );
+              }
+            },
+            child: const Text('Compartilhar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showRemoveShareDialog() async {
+    try {
+      final sharedUsers = await _shareService.getSharedUsers();
+
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Remover compartilhamento'),
+          content: sharedUsers.isEmpty
+              ? const Text('Nenhum compartilhamento ativo')
+              : SizedBox(
+                  width: double.maxFinite,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: sharedUsers.length,
+                    itemBuilder: (context, index) {
+                      final user = sharedUsers[index];
+                      return ListTile(
+                        title: Text(user.username),
+                        subtitle: Text(user.login),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.remove_circle),
+                          onPressed: () async {
+                            try {
+                              await _shareService.removeShareByUser(user.userId);
+                              if (!mounted) return;
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Compartilhamento removido com sucesso',
+                                  ),
+                                ),
+                              );
+                              _showRemoveShareDialog();
+                            } catch (e) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Erro: ${e.toString()}'),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fechar'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro: ${e.toString()}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,7 +182,6 @@ class _HomePageState extends State<HomePage> {
             onPressed: () async {
               await _authService.logout();
               if (!mounted) return;
-              // ignore: use_build_context_synchronously
               Navigator.of(context).pushReplacementNamed('/');
             },
           ),
@@ -118,19 +238,39 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final date = _selectedDay ?? DateTime.now();
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            builder: (_) => CreateEventBottomSheet(
-              selectedDate: date,
-              onEventCreated: _loadEvents,
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            mini: true,
+            heroTag: 'remove_share',
+            onPressed: _showRemoveShareDialog,
+            child: const Icon(Icons.group_remove),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            mini: true,
+            heroTag: 'share',
+            onPressed: _showShareDialog,
+            child: const Icon(Icons.group_add),
+          ),
+          const SizedBox(height: 8),
+          FloatingActionButton(
+            heroTag: 'add',
+            onPressed: () {
+              final date = _selectedDay ?? DateTime.now();
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => CreateEventBottomSheet(
+                  selectedDate: date,
+                  onEventCreated: _loadEvents,
+                ),
+              );
+            },
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }

@@ -4,20 +4,19 @@ import '../models/event.dart';
 class EventService {
   final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
 
-  Future<List<Event>> getEventsByMonth(DateTime month) async {
-    final start = DateTime(month.year, month.month, 1);
-    final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+Future<List<Event>> getEventsByMonth(DateTime month) async {
+  final start = DateTime(month.year, month.month, 1);
+  final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+  final currentUserId = _supabase.auth.currentUser!.id;
 
-    final response = await _supabase
-      .from('events')
-      .select()
-      .eq('created_by', _supabase.auth.currentUser!.id) // 👈
-      .gte('target_date', start.toIso8601String())
-      .lte('target_date', end.toIso8601String())
-      .order('target_date');
+  final response = await _supabase.rpc('get_events_by_month', params: {
+    'p_user_id': currentUserId,
+    'p_start': start.toIso8601String(),
+    'p_end': end.toIso8601String(),
+  });
 
-    return response.map<Event>((json) => Event.fromJson(json)).toList();
-  }
+  return (response as List).map<Event>((json) => Event.fromJson(json)).toList();
+}
 
   Future<Event> createEvent({
     required String title,

@@ -19,13 +19,23 @@ class EventListItem extends StatelessWidget {
           event.title,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        subtitle: event.description != null
-            ? Text(
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (event.createdByUsername != null)
+              Text(
+                event.createdByUsername ?? 'Desconhecido',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            if (event.description != null)
+              Text(
                 event.description!,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-              )
-            : null,
+              ),
+          ],
+        ),
         trailing: Text(
           '${event.targetDate.hour.toString().padLeft(2, '0')}:${event.targetDate.minute.toString().padLeft(2, '0')}',
           style: const TextStyle(color: Colors.grey),

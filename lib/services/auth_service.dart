@@ -33,7 +33,6 @@ class AuthService {
     throw Exception('Nome de usuário já está em uso');
   }
 
-  // Tudo em uma única operação, trigger cuida do resto
   return await _supabase.auth.signUp(
     email: email,
     password: password,

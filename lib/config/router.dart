@@ -14,30 +14,22 @@ final router = GoRouter(
   redirect: (context, state) {
     final logado = supabase.Supabase.instance.client.auth.currentUser != null;
     final naLoginOuCadastro =
-        state.matchedLocation == '/' ||
-        state.matchedLocation == '/cadastro';
+        state.matchedLocation == '/' || state.matchedLocation == '/cadastro';
 
     if (!logado && !naLoginOuCadastro) return '/';
     if (logado && naLoginOuCadastro) return '/dashboard';
     return null;
   },
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const LoginPage(),
-    ),
+    GoRoute(path: '/', builder: (context, state) => const LoginPage()),
     GoRoute(
       path: '/cadastro',
       builder: (context, state) => const CadastroPage(),
     ),
-    GoRoute(
-      path: '/dashboard',
-      builder: (context, state) => const HomePage(),
-    ),
+    GoRoute(path: '/dashboard', builder: (context, state) => const HomePage()),
   ],
 );
 
-// Necessário para o GoRouter reagir a mudanças de autenticação
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
