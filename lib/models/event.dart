@@ -4,8 +4,11 @@ class Event {
   final DateTime targetDate;
   final String? description;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt; 
   final String createdBy;
+
+  // futuramente adicionar:
+  // final List<String> sharedWith;
 
   Event({
     required this.id,
@@ -17,26 +20,26 @@ class Event {
     required this.createdBy,
   });
 
-  factory Event.fromJson(Map<String, dynamic> json) {
-    return Event(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      targetDate: DateTime.parse(json['target_date'] as String),
-      description: json['description'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
-      createdBy: json['created_by'] as String,
-    );
-  }
+factory Event.fromJson(Map<String, dynamic> json) {
+  print('DEBUG event json: $json'); // 👈 adicione isso
+  return Event(
+    id: json['id'].toString(), // toString() em vez de as String
+    title: json['title'] as String,
+    targetDate: DateTime.parse(json['target_date'] as String),
+    description: json['description'] as String?,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    updatedAt: json['updated_at'] != null
+        ? DateTime.parse(json['updated_at'] as String)
+        : null,
+    createdBy: json['created_by'].toString(), // toString() em vez de as String
+  );
+}
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'title': title,
       'target_date': targetDate.toIso8601String(),
       'description': description,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
       'created_by': createdBy,
     };
   }
