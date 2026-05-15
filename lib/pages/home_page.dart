@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
 import '../models/event.dart';
 import '../services/event_service.dart';
 import '../services/auth_service.dart';
@@ -7,6 +8,7 @@ import '../services/event_share_service.dart';
 import '../widgets/event_list_item.dart';
 import '../widgets/create_event_bottom_sheet.dart';
 import '../widgets/edit_event_bottom_sheet.dart';
+import '../themes/app_theme.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,6 +26,7 @@ class _HomePageState extends State<HomePage> {
   DateTime? _selectedDay;
   List<Event> _eventsOfMonth = [];
   bool _loading = true;
+  bool _fabOpen = false;
 
   @override
   void initState() {
@@ -60,12 +63,19 @@ class _HomePageState extends State<HomePage> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Compartilhar calendário'),
+        title: Row(
+          children: [
+            Icon(Icons.share, color: AppTheme.accentColor),
+            const SizedBox(width: 8),
+            const Text('Compartilhar calendário'),
+          ],
+        ),
         content: TextField(
           controller: loginController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Login do usuário',
             hintText: 'usuario',
+            prefixIcon: const Icon(Icons.person),
           ),
         ),
         actions: [
@@ -73,7 +83,7 @@ class _HomePageState extends State<HomePage> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          ElevatedButton.icon(
             onPressed: () async {
               final login = loginController.text.trim();
               if (login.isEmpty) {
@@ -99,7 +109,8 @@ class _HomePageState extends State<HomePage> {
                 );
               }
             },
-            child: const Text('Compartilhar'),
+            icon: const Icon(Icons.send),
+            label: const Text('Compartilhar'),
           ),
         ],
       ),
@@ -114,21 +125,52 @@ class _HomePageState extends State<HomePage> {
       await showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Remover compartilhamento'),
+          title: Row(
+            children: [
+              Icon(Icons.group_remove, color: AppTheme.accentColor),
+              const SizedBox(width: 8),
+              const Text('Remover compartilhamento'),
+            ],
+          ),
           content: sharedUsers.isEmpty
-              ? const Text('Nenhum compartilhamento ativo')
+              ? SizedBox(
+                  width: double.maxFinite,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.people_outline,
+                          size: 64,
+                          color: AppTheme.primaryColor,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Nenhum compartilhamento ativo',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
               : SizedBox(
                   width: double.maxFinite,
-                  child: ListView.builder(
+                  child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: sharedUsers.length,
+                    separatorBuilder: (_, __) =>
+                        Divider(color: AppTheme.dividerColor),
                     itemBuilder: (context, index) {
                       final user = sharedUsers[index];
                       return ListTile(
                         title: Text(user.username),
                         subtitle: Text(user.login),
                         trailing: IconButton(
-                          icon: const Icon(Icons.remove_circle),
+                          icon: Icon(
+                            Icons.remove_circle,
+                            color: AppTheme.errorColor,
+                          ),
                           onPressed: () async {
                             try {
                               await _shareService.removeShareByUser(
@@ -174,117 +216,319 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _showLogoutConfirmation() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sair da conta'),
+        content: const Text('Tem certeza que deseja sair?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Sair',
+              style: TextStyle(color: AppTheme.errorColor),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != null && confirm) {
+      await _authService.logout();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Meu Calendário'),
+        title: Row(
+          children: [
+            Icon(Icons.calendar_month, color: Colors.white),
+            const SizedBox(width: 8),
+            const Text('Meu Calendário'),
+          ],
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await _authService.logout();
-              if (!mounted) return;
-              Navigator.of(context).pushReplacementNamed('/');
-            },
+          Tooltip(
+            message: 'Sair',
+            child: IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: _showLogoutConfirmation,
+            ),
           ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                TableCalendar<Event>(
-                  locale: 'pt_BR',
-                  firstDay: DateTime(2020),
-                  lastDay: DateTime(2030),
-                  focusedDay: _focusedMonth,
-                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                  eventLoader: _getEventsForDay,
-                  onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      // Clicou no mesmo dia selecionado → desmarca e mostra todos do mês
-                      if (isSameDay(_selectedDay, selectedDay)) {
-                        _selectedDay = null;
-                      } else {
-                        _selectedDay = selectedDay;
-                      }
-                      _focusedMonth = focusedDay;
-                    });
-                  },
-                  onPageChanged: (focusedDay) {
-                    _focusedMonth = focusedDay;
-                    _loadEvents();
-                  },
-                  calendarStyle: const CalendarStyle(
-                    markerDecoration: BoxDecoration(
-                      color: Colors.blue,
-                      shape: BoxShape.circle,
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Carregando eventos...'),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadEvents,
+              color: AppTheme.accentColor,
+              backgroundColor: AppTheme.cardColor,
+              child: Column(
+                children: [
+                  // Calendário
+                  Container(
+                    margin: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: TableCalendar<Event>(
+                        locale: 'pt_BR',
+                        firstDay: DateTime(2020),
+                        lastDay: DateTime(2030),
+                        focusedDay: _focusedMonth,
+                        selectedDayPredicate: (day) =>
+                            isSameDay(_selectedDay, day),
+                        eventLoader: _getEventsForDay,
+                        onDaySelected: (selectedDay, focusedDay) {
+                          setState(() {
+                            if (isSameDay(_selectedDay, selectedDay)) {
+                              _selectedDay = null;
+                            } else {
+                              _selectedDay = selectedDay;
+                            }
+                            _focusedMonth = focusedDay;
+                          });
+                        },
+                        onPageChanged: (focusedDay) {
+                          _focusedMonth = focusedDay;
+                          _loadEvents();
+                        },
+                        calendarStyle: CalendarStyle(
+                          todayDecoration: BoxDecoration(
+                            color: Colors.transparent,
+                            border: Border.all(
+                              color: AppTheme.accentColor,
+                              width: 2,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          selectedDecoration: const BoxDecoration(
+                            color: AppTheme.primaryColor,
+                            shape: BoxShape.circle,
+                          ),
+                          weekendTextStyle: const TextStyle(
+                            color: Color(0xFFE57373),
+                          ),
+                          defaultTextStyle: const TextStyle(
+                            color: Colors.white,
+                          ),
+                          outsideTextStyle: const TextStyle(color: Colors.grey),
+                          markerDecoration: const BoxDecoration(
+                            color: AppTheme.accentColor,
+                            shape: BoxShape.circle,
+                          ),
+                          markerSize: 6,
+                        ),
+                        headerStyle: const HeaderStyle(
+                          formatButtonVisible: false,
+                          titleCentered: true,
+                          titleTextStyle: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                          leftChevronIcon: Icon(
+                            Icons.chevron_left,
+                            color: Colors.white,
+                          ),
+                          rightChevronIcon: Icon(
+                            Icons.chevron_right,
+                            color: Colors.white,
+                          ),
+                        ),
+                        daysOfWeekStyle: const DaysOfWeekStyle(
+                          weekdayStyle: TextStyle(color: Colors.grey),
+                          weekendStyle: TextStyle(color: Color(0xFFE57373)),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const Divider(),
-                Expanded(
-                  child: _selectedDayEvents.isEmpty
-                      ? const Center(child: Text('Nenhum evento neste período'))
-                      : ListView.builder(
-                          itemCount: _selectedDayEvents.length,
-                          itemBuilder: (context, index) {
-                            final event = _selectedDayEvents[index];
-                            return EventListItem(
-                              event: event,
-                              onTap: () {
-                                final currentUserId =
-                                    _authService.currentUser?.id;
-                                if (currentUserId != null &&
-                                    event.createdBy == currentUserId) {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    builder: (_) => EditEventBottomSheet(
-                                      event: event,
-                                      onEventUpdated: _loadEvents,
-                                    ),
-                                  );
-                                }
-                              },
-                            );
-                          },
+                  Divider(color: AppTheme.dividerColor, height: 1),
+                  // Cabeçalho da lista
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Eventos',
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _selectedDay != null
+                              ? DateFormat(
+                                  'd \'de\' MMMM \'de\' yyyy',
+                                  'pt_BR',
+                                ).format(_selectedDay!)
+                              : 'Todos os eventos do mês',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppTheme.accentColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Lista de eventos
+                  Expanded(
+                    child: _selectedDayEvents.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.event_busy,
+                                  size: 64,
+                                  color: AppTheme.primaryColor,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Nenhum evento neste período',
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: _selectedDayEvents.length,
+                            separatorBuilder: (_, __) => Divider(
+                              color: AppTheme.dividerColor,
+                              height: 1,
+                            ),
+                            itemBuilder: (context, index) {
+                              final event = _selectedDayEvents[index];
+                              return EventListItem(
+                                event: event,
+                                onTap: () {
+                                  final currentUserId =
+                                      _authService.currentUser?.id;
+                                  if (currentUserId != null &&
+                                      event.createdBy == currentUserId) {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(16),
+                                        ),
+                                      ),
+                                      builder: (_) => EditEventBottomSheet(
+                                        event: event,
+                                        onEventUpdated: _loadEvents,
+                                      ),
+                                    );
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          // Mini-FABs que aparecem quando _fabOpen = true
+          AnimatedOpacity(
+            opacity: _fabOpen ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: Column(
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'add_event',
+                  backgroundColor: AppTheme.cardColor,
+                  onPressed: () {
+                    setState(() => _fabOpen = false);
+                    final date = _selectedDay ?? DateTime.now();
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
+                      ),
+                      builder: (_) => CreateEventBottomSheet(
+                        selectedDate: date,
+                        onEventCreated: _loadEvents,
+                      ),
+                    );
+                  },
+                  child: const Icon(
+                    Icons.edit_calendar,
+                    color: AppTheme.accentColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton.small(
+                  heroTag: 'share',
+                  backgroundColor: AppTheme.cardColor,
+                  onPressed: () {
+                    setState(() => _fabOpen = false);
+                    _showShareDialog();
+                  },
+                  child: const Icon(
+                    Icons.group_add,
+                    color: AppTheme.accentColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton.small(
+                  heroTag: 'remove_share',
+                  backgroundColor: AppTheme.cardColor,
+                  onPressed: () {
+                    setState(() => _fabOpen = false);
+                    _showRemoveShareDialog();
+                  },
+                  child: const Icon(
+                    Icons.group_remove,
+                    color: AppTheme.accentColor,
+                  ),
                 ),
               ],
             ),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            mini: true,
-            heroTag: 'remove_share',
-            onPressed: _showRemoveShareDialog,
-            child: const Icon(Icons.group_remove),
           ),
           const SizedBox(height: 8),
+          // Botão toggle (único sempre visível)
           FloatingActionButton(
-            mini: true,
-            heroTag: 'share',
-            onPressed: _showShareDialog,
-            child: const Icon(Icons.group_add),
-          ),
-          const SizedBox(height: 8),
-          FloatingActionButton(
-            heroTag: 'add',
-            onPressed: () {
-              final date = _selectedDay ?? DateTime.now();
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                builder: (_) => CreateEventBottomSheet(
-                  selectedDate: date,
-                  onEventCreated: _loadEvents,
-                ),
-              );
-            },
-            child: const Icon(Icons.add),
+            heroTag: 'toggle',
+            backgroundColor: AppTheme.primaryColor,
+            onPressed: () => setState(() => _fabOpen = !_fabOpen),
+            child: AnimatedRotation(
+              turns: _fabOpen ? 0.240 : 0.0,  // 45° para parecer um "X"
+              duration: const Duration(milliseconds: 250),
+              child: Icon(_fabOpen ? Icons.close : Icons.add),
+            ),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/event.dart';
+import 'package:intl/intl.dart';
 import '../services/event_service.dart';
+import '../themes/app_theme.dart';
 
 class CreateEventBottomSheet extends StatefulWidget {
   final DateTime selectedDate;
@@ -20,9 +21,15 @@ class _CreateEventBottomSheetState extends State<CreateEventBottomSheet> {
   final EventService _eventService = EventService();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  late DateTime _selectedDateTime;
 
-  TimeOfDay _selectedTime = TimeOfDay.now();
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDateTime = widget.selectedDate;
+  }
 
   @override
   void dispose() {
@@ -31,13 +38,60 @@ class _CreateEventBottomSheetState extends State<CreateEventBottomSheet> {
     super.dispose();
   }
 
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDateTime,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppTheme.primaryColor,
+            surface: AppTheme.cardColor,
+          ),
+          dialogBackgroundColor: AppTheme.cardColor,
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDateTime = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _selectedDateTime.hour,
+          _selectedDateTime.minute,
+        );
+      });
+    }
+  }
+
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: _selectedTime,
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppTheme.primaryColor,
+            surface: AppTheme.cardColor,
+          ),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) {
-      setState(() => _selectedTime = picked);
+      setState(() {
+        _selectedDateTime = DateTime(
+          _selectedDateTime.year,
+          _selectedDateTime.month,
+          _selectedDateTime.day,
+          picked.hour,
+          picked.minute,
+        );
+      });
     }
   }
 
@@ -52,17 +106,9 @@ class _CreateEventBottomSheetState extends State<CreateEventBottomSheet> {
     setState(() => _loading = true);
 
     try {
-      final targetDate = DateTime(
-        widget.selectedDate.year,
-        widget.selectedDate.month,
-        widget.selectedDate.day,
-        _selectedTime.hour,
-        _selectedTime.minute,
-      );
-
       await _eventService.createEvent(
         title: _titleController.text.trim(),
-        targetDate: targetDate,
+        targetDate: _selectedDateTime,
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
@@ -85,79 +131,139 @@ class _CreateEventBottomSheetState extends State<CreateEventBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final formattedDate =
-        '${widget.selectedDate.day.toString().padLeft(2, '0')}/'
-        '${widget.selectedDate.month.toString().padLeft(2, '0')}/'
-        '${widget.selectedDate.year}';
-
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'Novo Evento',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(
-              labelText: 'Título *',
-              border: OutlineInputBorder(),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Novo Evento',
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
             ),
-            textCapitalization: TextCapitalization.sentences,
-            autofocus: true,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _descriptionController,
-            decoration: const InputDecoration(
-              labelText: 'Descrição',
-              border: OutlineInputBorder(),
+            const SizedBox(height: 16),
+            Divider(color: AppTheme.dividerColor, thickness: 1),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _titleController,
+              enabled: !_loading,
+              decoration: InputDecoration(
+                labelText: 'Título *',
+                prefixIcon: const Icon(Icons.event),
+                hintText: 'Digite o título do evento',
+              ),
+              textCapitalization: TextCapitalization.sentences,
+              autofocus: true,
             ),
-            textCapitalization: TextCapitalization.sentences,
-            maxLines: 3,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
-              const SizedBox(width: 8),
-              Text(formattedDate, style: const TextStyle(fontSize: 15)),
-              const SizedBox(width: 24),
-              const Icon(Icons.access_time, size: 18, color: Colors.grey),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _pickTime,
-                child: Text(
-                  '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    decoration: TextDecoration.underline,
-                  ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _descriptionController,
+              enabled: !_loading,
+              decoration: InputDecoration(
+                labelText: 'Descrição',
+                prefixIcon: const Icon(Icons.description),
+                hintText: 'Digite a descrição (opcional)',
+              ),
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: 3,
+              minLines: 1,
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: _loading ? null : _pickDate,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.inputFillColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.dividerColor),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today, color: AppTheme.accentColor),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Data',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          Text(
+                            DateFormat('dd/MM/yyyy').format(_selectedDateTime),
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _loading ? null : _submit,
-            child: _loading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Criar Evento'),
-          ),
-        ],
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _loading ? null : _pickTime,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.inputFillColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.dividerColor),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.access_time, color: AppTheme.accentColor),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hora',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          Text(
+                            '${_selectedDateTime.hour.toString().padLeft(2, '0')}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loading ? null : _submit,
+              icon: const Icon(Icons.check),
+              label: _loading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Salvar Evento'),
+            ),
+          ],
+        ),
       ),
     );
   }

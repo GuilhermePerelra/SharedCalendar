@@ -5,6 +5,7 @@ import 'config/router.dart';
 import 'mvvm/login_view_model.dart';
 import 'mvvm/cadastro_view_model.dart';
 import 'services/auth_service.dart';
+import 'themes/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp.router(
         title: 'Calendário Compartilhado',
+        theme: AppTheme.darkTheme,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,

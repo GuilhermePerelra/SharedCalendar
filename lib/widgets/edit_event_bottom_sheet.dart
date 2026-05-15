@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/event.dart';
 import '../services/event_service.dart';
+import '../themes/app_theme.dart';
 
 class EditEventBottomSheet extends StatefulWidget {
   final Event event;
@@ -19,7 +21,7 @@ class EditEventBottomSheet extends StatefulWidget {
 class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
-  late DateTime _selectedDate;
+  late DateTime _selectedDateTime;
   bool _isLoading = false;
 
   final EventService _eventService = EventService();
@@ -31,7 +33,7 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
     _descriptionController = TextEditingController(
       text: widget.event.description ?? '',
     );
-    _selectedDate = widget.event.targetDate;
+    _selectedDateTime = widget.event.targetDate;
   }
 
   @override
@@ -41,38 +43,56 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _selectedDateTime,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppTheme.primaryColor,
+            surface: AppTheme.cardColor,
+          ),
+          dialogBackgroundColor: AppTheme.cardColor,
+        ),
+        child: child!,
+      ),
     );
-    if (picked != null && picked != _selectedDate) {
-      // Preservar a hora anterior
+    if (picked != null) {
       setState(() {
-        _selectedDate = DateTime(
+        _selectedDateTime = DateTime(
           picked.year,
           picked.month,
           picked.day,
-          _selectedDate.hour,
-          _selectedDate.minute,
+          _selectedDateTime.hour,
+          _selectedDateTime.minute,
         );
       });
     }
   }
 
-  Future<void> _selectTime(BuildContext context) async {
+  Future<void> _selectTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_selectedDate),
+      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppTheme.primaryColor,
+            surface: AppTheme.cardColor,
+          ),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) {
       setState(() {
-        _selectedDate = DateTime(
-          _selectedDate.year,
-          _selectedDate.month,
-          _selectedDate.day,
+        _selectedDateTime = DateTime(
+          _selectedDateTime.year,
+          _selectedDateTime.month,
+          _selectedDateTime.day,
           picked.hour,
           picked.minute,
         );
@@ -94,7 +114,7 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
       await _eventService.updateEvent(
         id: widget.event.id,
         title: _titleController.text.trim(),
-        targetDate: _selectedDate,
+        targetDate: _selectedDateTime,
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
@@ -131,7 +151,10 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Excluir',
+              style: TextStyle(color: AppTheme.errorColor),
+            ),
           ),
         ],
       ),
@@ -165,33 +188,36 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      child: Container(
+      child: Padding(
         padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'Editar Evento',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.headlineSmall,
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
+            Divider(color: AppTheme.dividerColor, thickness: 1),
+            const SizedBox(height: 20),
             TextField(
               controller: _titleController,
               enabled: !_isLoading,
               decoration: InputDecoration(
                 labelText: 'Título',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                prefixIcon: const Icon(Icons.event),
+                hintText: 'Digite o título do evento',
               ),
+              textCapitalization: TextCapitalization.sentences,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextField(
               controller: _descriptionController,
               enabled: !_isLoading,
@@ -199,26 +225,29 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
               minLines: 1,
               decoration: InputDecoration(
                 labelText: 'Descrição (opcional)',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                prefixIcon: const Icon(Icons.description),
+                hintText: 'Digite a descrição',
               ),
+              textCapitalization: TextCapitalization.sentences,
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _isLoading ? null : () => _selectDate(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: _isLoading ? null : _selectDate,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.inputFillColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.dividerColor),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today, color: AppTheme.accentColor),
+                    const SizedBox(width: 12),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -226,29 +255,35 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
                             'Data',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
-                          const SizedBox(height: 4),
                           Text(
-                            '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                            style: const TextStyle(fontSize: 16),
+                            DateFormat('dd/MM/yyyy').format(_selectedDateTime),
+                            style: Theme.of(context).textTheme.titleSmall,
                           ),
                         ],
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _isLoading ? null : () => _selectTime(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: _isLoading ? null : _selectTime,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.inputFillColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.dividerColor),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.access_time, color: AppTheme.accentColor),
+                    const SizedBox(width: 12),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -256,40 +291,45 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
                             'Hora',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
-                          const SizedBox(height: 4),
                           Text(
-                            '${_selectedDate.hour.toString().padLeft(2, '0')}:${_selectedDate.minute.toString().padLeft(2, '0')}',
-                            style: const TextStyle(fontSize: 16),
+                            '${_selectedDateTime.hour.toString().padLeft(2, '0')}:${_selectedDateTime.minute.toString().padLeft(2, '0')}',
+                            style: Theme.of(context).textTheme.titleSmall,
                           ),
                         ],
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveEvent,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Salvar'),
+                  child: OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _deleteEvent,
+                    icon: const Icon(Icons.delete),
+                    label: const Text('Excluir'),
                   ),
                 ),
                 const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _deleteEvent,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text(
-                    'Excluir',
-                    style: TextStyle(color: Colors.white),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _saveEvent,
+                    icon: const Icon(Icons.check),
+                    label: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : const Text('Salvar'),
                   ),
                 ),
               ],
