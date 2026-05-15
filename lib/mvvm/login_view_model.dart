@@ -17,18 +17,18 @@ class LoginViewModel extends ChangeNotifier {
 
     try {
       final response = await _authService.login(email, password);
+      _loading = false;
       if (response.session != null) {
-        _loading = false;
         notifyListeners();
         return true;
-      } else {
-        _errorMessage = 'Falha no login';
-        _loading = false;
-        notifyListeners();
-        return false;
       }
+      _errorMessage =
+          'Verifique a sua senha e nome de usuário e tente novamente';
+      notifyListeners();
+      return false;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage =
+          'Verifique a sua senha e nome de usuário e tente novamente';
       _loading = false;
       notifyListeners();
       return false;

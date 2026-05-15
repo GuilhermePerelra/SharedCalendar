@@ -4,19 +4,24 @@ import '../models/event.dart';
 class EventService {
   final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
 
-Future<List<Event>> getEventsByMonth(DateTime month) async {
-  final start = DateTime(month.year, month.month, 1);
-  final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
-  final currentUserId = _supabase.auth.currentUser!.id;
+  Future<List<Event>> getEventsByMonth(DateTime month) async {
+    final start = DateTime(month.year, month.month, 1);
+    final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+    final currentUserId = _supabase.auth.currentUser!.id;
 
-  final response = await _supabase.rpc('get_events_by_month', params: {
-    'p_user_id': currentUserId,
-    'p_start': start.toIso8601String(),
-    'p_end': end.toIso8601String(),
-  });
+    final response = await _supabase.rpc(
+      'get_events_by_month',
+      params: {
+        'p_user_id': currentUserId,
+        'p_start': start.toIso8601String(),
+        'p_end': end.toIso8601String(),
+      },
+    );
 
-  return (response as List).map<Event>((json) => Event.fromJson(json)).toList();
-}
+    return (response as List)
+        .map<Event>((json) => Event.fromJson(json))
+        .toList();
+  }
 
   Future<Event> createEvent({
     required String title,
@@ -27,10 +32,9 @@ Future<List<Event>> getEventsByMonth(DateTime month) async {
     if (session == null || session.isExpired) {
       await _supabase.auth.refreshSession();
     }
-     final currentSession = _supabase.auth.currentSession!;
+    final currentSession = _supabase.auth.currentSession!;
 
-    final response = await _supabase
-        .rest
+    final response = await _supabase.rest
         .setAuth(currentSession.accessToken)
         .from('events')
         .insert({
@@ -42,8 +46,8 @@ Future<List<Event>> getEventsByMonth(DateTime month) async {
         .select()
         .single();
 
-  return Event.fromJson(response);
-}
+    return Event.fromJson(response);
+  }
 
   Future<Event> updateEvent({
     required String id,
@@ -51,7 +55,14 @@ Future<List<Event>> getEventsByMonth(DateTime month) async {
     required DateTime targetDate,
     String? description,
   }) async {
-    final response = await _supabase
+    final session = _supabase.auth.currentSession;
+    if (session == null || session.isExpired) {
+      await _supabase.auth.refreshSession();
+    }
+    final currentSession = _supabase.auth.currentSession!;
+
+    final response = await _supabase.rest
+        .setAuth(currentSession.accessToken)
         .from('events')
         .update({
           'title': title,
@@ -67,6 +78,16 @@ Future<List<Event>> getEventsByMonth(DateTime month) async {
   }
 
   Future<void> deleteEvent(String id) async {
-    await _supabase.from('events').delete().eq('id', id);
+    final session = _supabase.auth.currentSession;
+    if (session == null || session.isExpired) {
+      await _supabase.auth.refreshSession();
+    }
+    final currentSession = _supabase.auth.currentSession!;
+
+    await _supabase.rest
+        .setAuth(currentSession.accessToken)
+        .from('events')
+        .delete()
+        .eq('id', id);
   }
 }

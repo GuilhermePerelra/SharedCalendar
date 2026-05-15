@@ -18,27 +18,27 @@ class AuthService {
     );
   }
 
- Future<supabase.AuthResponse> cadastro(
-  String email,
-  String password,
-  String username,
-) async {
-  final existingUser = await _supabase
-      .from('users')
-      .select('username')
-      .eq('username', username)
-      .maybeSingle();
+  Future<supabase.AuthResponse> cadastro(
+    String email,
+    String password,
+    String username,
+  ) async {
+    final existingUser = await _supabase
+        .from('users')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle();
 
-  if (existingUser != null) {
-    throw Exception('Nome de usuário já está em uso');
+    if (existingUser != null) {
+      throw Exception('Nome de usuário já está em uso');
+    }
+
+    return await _supabase.auth.signUp(
+      email: email,
+      password: password,
+      data: {'username': username},
+    );
   }
-
-  return await _supabase.auth.signUp(
-    email: email,
-    password: password,
-    data: {'username': username},
-  );
-}
 
   Future<void> logout() async {
     await _supabase.auth.signOut();

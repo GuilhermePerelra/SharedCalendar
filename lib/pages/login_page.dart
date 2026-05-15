@@ -11,7 +11,9 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _formKey = GlobalKey<FormState>();
+  static const double _fieldSpacing = 16.0;
+  static const double _bottomSpacing = 24.0;
+
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
@@ -23,17 +25,58 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
     final viewModel = context.read<LoginViewModel>();
     await viewModel.login(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
+  }
 
-    // Redirect automático pelo GoRouter
+  InputDecoration _buildInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+    );
+  }
+
+  Widget _buildEmailField() {
+    return TextFormField(
+      controller: _emailController,
+      decoration: _buildInputDecoration('Email'),
+      keyboardType: TextInputType.emailAddress,
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return TextFormField(
+      controller: _passwordController,
+      decoration: _buildInputDecoration('Senha'),
+      obscureText: true,
+    );
+  }
+
+  Widget _buildErrorMessage(String? message) {
+    if (message == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: _bottomSpacing),
+      child: Text(
+        message,
+        style: const TextStyle(color: Colors.red),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton(LoginViewModel viewModel) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: viewModel.loading ? null : _login,
+        child: viewModel.loading
+            ? const CircularProgressIndicator()
+            : const Text('Entrar'),
+      ),
+    );
   }
 
   @override
@@ -44,72 +87,29 @@ class _LoginPageState extends State<LoginPage> {
         builder: (context, viewModel, child) {
           return Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildEmailField(),
+                    const SizedBox(height: _fieldSpacing),
+                    _buildPasswordField(),
+                    _buildErrorMessage(viewModel.errorMessage),
+                    const SizedBox(height: _fieldSpacing),
+                    _buildSubmitButton(viewModel),
+                    const SizedBox(height: _fieldSpacing),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const CadastroPage(),
+                          ),
+                        );
+                      },
+                      child: const Text('Não tem conta? Cadastre-se'),
                     ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Email é obrigatório';
-                      }
-                      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                        return 'Email inválido';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Senha',
-                      border: OutlineInputBorder(),
-                    ),
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Senha é obrigatória';
-                      }
-                      if (value.length < 6) {
-                        return 'Senha deve ter pelo menos 6 caracteres';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  if (viewModel.errorMessage != null)
-                    Text(
-                      viewModel.errorMessage!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: viewModel.loading ? null : _login,
-                      child: viewModel.loading
-                          ? const CircularProgressIndicator()
-                          : const Text('Entrar'),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const CadastroPage()),
-                      );
-                    },
-                    child: const Text('Não tem conta? Cadastre-se'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );

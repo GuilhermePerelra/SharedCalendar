@@ -17,18 +17,16 @@ class CadastroViewModel extends ChangeNotifier {
 
     try {
       final response = await _authService.cadastro(email, password, username);
+      _loading = false;
       if (response.session != null) {
-        _loading = false;
         notifyListeners();
         return true;
-      } else {
-        _errorMessage = 'Falha no cadastro';
-        _loading = false;
-        notifyListeners();
-        return false;
       }
+      _errorMessage = 'Falha ao criar a conta. Tente novamente';
+      notifyListeners();
+      return false;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = 'Falha ao criar a conta. Tente novamente';
       _loading = false;
       notifyListeners();
       return false;

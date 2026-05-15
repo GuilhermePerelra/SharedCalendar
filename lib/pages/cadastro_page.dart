@@ -11,6 +11,12 @@ class CadastroPage extends StatefulWidget {
 }
 
 class _CadastroPageState extends State<CadastroPage> {
+  static const double _fieldSpacing = 16.0;
+  static const double _bottomSpacing = 24.0;
+  static const int _minUsernameLength = 3;
+  static const int _maxUsernameLength = 20;
+  static const int _minPasswordLength = 6;
+
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -26,10 +32,124 @@ class _CadastroPageState extends State<CadastroPage> {
     super.dispose();
   }
 
-  Future<void> _cadastro() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
+  String? _validateUsername(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Nome de usuário é obrigatório';
     }
+    if (value.length < _minUsernameLength) {
+      return 'Nome de usuário deve ter pelo menos $_minUsernameLength caracteres';
+    }
+    if (value.length > _maxUsernameLength) {
+      return 'Nome de usuário deve ter no máximo $_maxUsernameLength caracteres';
+    }
+    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
+      return 'Nome de usuário deve conter apenas letras, números e _';
+    }
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Email é obrigatório';
+    }
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+      return 'Email inválido';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Senha é obrigatória';
+    }
+    if (value.length < _minPasswordLength) {
+      return 'Senha deve ter pelo menos $_minPasswordLength caracteres';
+    }
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Confirmação de senha é obrigatória';
+    }
+    if (value != _passwordController.text) {
+      return 'Senhas não coincidem';
+    }
+    return null;
+  }
+
+  Widget _buildUsernameField() {
+    return TextFormField(
+      controller: _usernameController,
+      decoration: _buildInputDecoration('Nome de usuário'),
+      validator: _validateUsername,
+    );
+  }
+
+  Widget _buildEmailField() {
+    return TextFormField(
+      controller: _emailController,
+      decoration: _buildInputDecoration('Email'),
+      keyboardType: TextInputType.emailAddress,
+      validator: _validateEmail,
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return TextFormField(
+      controller: _passwordController,
+      decoration: _buildInputDecoration('Senha'),
+      obscureText: true,
+      validator: _validatePassword,
+    );
+  }
+
+  Widget _buildConfirmPasswordField() {
+    return TextFormField(
+      controller: _confirmPasswordController,
+      decoration: _buildInputDecoration('Confirmar Senha'),
+      obscureText: true,
+      validator: _validateConfirmPassword,
+    );
+  }
+
+  Widget _buildErrorMessage(String? message) {
+    if (message == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: _bottomSpacing),
+      child: Text(
+        message,
+        style: const TextStyle(color: Colors.red),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton(CadastroViewModel viewModel) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: viewModel.loading ? null : _cadastro,
+        child: viewModel.loading
+            ? const CircularProgressIndicator()
+            : const Text('Cadastrar'),
+      ),
+    );
+  }
+
+  Widget _buildLoginLink() {
+    return TextButton(
+      onPressed: () {
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
+      },
+      child: const Text('Já tem conta? Faça login'),
+    );
+  }
+
+  Future<void> _cadastro() async {
+    if (!_formKey.currentState!.validate()) return;
 
     final viewModel = context.read<CadastroViewModel>();
     await viewModel.cadastro(
@@ -37,8 +157,13 @@ class _CadastroPageState extends State<CadastroPage> {
       _passwordController.text.trim(),
       _usernameController.text.trim(),
     );
+  }
 
-    // Redirect automático pelo GoRouter
+  InputDecoration _buildInputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+    );
   }
 
   @override
@@ -52,111 +177,23 @@ class _CadastroPageState extends State<CadastroPage> {
             child: Form(
               key: _formKey,
               child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextFormField(
-                      controller: _usernameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome de usuário',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Nome de usuário é obrigatório';
-                        }
-                        if (value.length < 3) {
-                          return 'Nome de usuário deve ter pelo menos 3 caracteres';
-                        }
-                        if (value.length > 20) {
-                          return 'Nome de usuário deve ter no máximo 20 caracteres';
-                        }
-                        if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
-                          return 'Nome de usuário deve conter apenas letras, números e _';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Email é obrigatório';
-                        }
-                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                          return 'Email inválido';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      decoration: const InputDecoration(
-                        labelText: 'Senha',
-                        border: OutlineInputBorder(),
-                      ),
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Senha é obrigatória';
-                        }
-                        if (value.length < 6) {
-                          return 'Senha deve ter pelo menos 6 caracteres';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      decoration: const InputDecoration(
-                        labelText: 'Confirmar Senha',
-                        border: OutlineInputBorder(),
-                      ),
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Confirmação de senha é obrigatória';
-                        }
-                        if (value != _passwordController.text) {
-                          return 'Senhas não coincidem';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    if (viewModel.errorMessage != null)
-                      Text(
-                        viewModel.errorMessage!,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: viewModel.loading ? null : _cadastro,
-                        child: viewModel.loading
-                            ? const CircularProgressIndicator()
-                            : const Text('Cadastrar'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const LoginPage()),
-                        );
-                      },
-                      child: const Text('Já tem conta? Faça login'),
-                    ),
-                  ],
+                child: Center(
+                  child: Column(
+                    children: [
+                      _buildUsernameField(),
+                      const SizedBox(height: _fieldSpacing),
+                      _buildEmailField(),
+                      const SizedBox(height: _fieldSpacing),
+                      _buildPasswordField(),
+                      const SizedBox(height: _fieldSpacing),
+                      _buildConfirmPasswordField(),
+                      _buildErrorMessage(viewModel.errorMessage),
+                      const SizedBox(height: _fieldSpacing),
+                      _buildSubmitButton(viewModel),
+                      const SizedBox(height: _fieldSpacing),
+                      _buildLoginLink(),
+                    ],
+                  ),
                 ),
               ),
             ),

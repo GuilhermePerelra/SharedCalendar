@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../services/event_share_service.dart';
 import '../widgets/event_list_item.dart';
 import '../widgets/create_event_bottom_sheet.dart';
+import '../widgets/edit_event_bottom_sheet.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -130,7 +131,9 @@ class _HomePageState extends State<HomePage> {
                           icon: const Icon(Icons.remove_circle),
                           onPressed: () async {
                             try {
-                              await _shareService.removeShareByUser(user.userId);
+                              await _shareService.removeShareByUser(
+                                user.userId,
+                              );
                               if (!mounted) return;
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -165,9 +168,9 @@ class _HomePageState extends State<HomePage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: ${e.toString()}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro: ${e.toString()}')));
     }
   }
 
@@ -192,6 +195,7 @@ class _HomePageState extends State<HomePage> {
           : Column(
               children: [
                 TableCalendar<Event>(
+                  locale: 'pt_BR',
                   firstDay: DateTime(2020),
                   lastDay: DateTime(2030),
                   focusedDay: _focusedMonth,
@@ -230,7 +234,19 @@ class _HomePageState extends State<HomePage> {
                             return EventListItem(
                               event: event,
                               onTap: () {
-                                // futuramente: abrir tela de detalhe/edição
+                                final currentUserId =
+                                    _authService.currentUser?.id;
+                                if (currentUserId != null &&
+                                    event.createdBy == currentUserId) {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    builder: (_) => EditEventBottomSheet(
+                                      event: event,
+                                      onEventUpdated: _loadEvents,
+                                    ),
+                                  );
+                                }
                               },
                             );
                           },
