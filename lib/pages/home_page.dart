@@ -278,12 +278,19 @@ class _HomePageState extends State<HomePage> {
                 icon: const Icon(Icons.notifications),
                 tooltip: 'Solicitações',
                 onPressed: () async {
-                  await Navigator.push(
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const ShareRequestsPage(),
+                      builder: (_) => ShareRequestsPage(focusedMonth: _focusedMonth),
                     ),
                   );
+
+                  if (result is List<Event>) {
+                    setState(() => _eventsOfMonth = result);
+                  } else if (result == true) {
+                    await _loadEvents();
+                  }
+
                   // Recarrega a contagem ao voltar
                   await _loadPendingRequestsCount();
                 },

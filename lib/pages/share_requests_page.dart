@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:sharedcalendar/services/event_service.dart';
+import '../models/event.dart';
 import '../models/share_request.dart';
 import '../services/event_share_service.dart';
 import '../themes/app_theme.dart';
 
 class ShareRequestsPage extends StatefulWidget {
-  const ShareRequestsPage({super.key});
+  final DateTime? focusedMonth;
+
+  const ShareRequestsPage({super.key, this.focusedMonth});
 
   @override
   State<ShareRequestsPage> createState() => _ShareRequestsPageState();
@@ -47,12 +50,12 @@ class _ShareRequestsPageState extends State<ShareRequestsPage> {
     try {
       await _shareService.acceptRequest(request.id, request.senderId);
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solicitação aceita com sucesso')),
+      // Recarrega eventos para o mês em foco e retorna a lista para o HomePage
+      final events = await _eventService.getEventsByMonth(
+        widget.focusedMonth ?? DateTime.now(),
       );
-      _loadRequests();
-      _eventService
+      if (!mounted) return;
+      Navigator.pop(context, events);
 
     } catch (e) {
       if (!mounted) return;
@@ -65,11 +68,13 @@ class _ShareRequestsPageState extends State<ShareRequestsPage> {
   Future<void> _reject(ShareRequest request) async {
     try {
       await _shareService.rejectRequest(request.id);
+
+      // Recarrega eventos para o mês em foco e retorna a lista para o HomePage
+      final events = await _eventService.getEventsByMonth(
+        widget.focusedMonth ?? DateTime.now(),
+      );
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Solicitação recusada')));
-      _loadRequests();
+      Navigator.pop(context, events);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
