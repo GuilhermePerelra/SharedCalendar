@@ -74,7 +74,9 @@ class EventShareService {
 
     final response = await _supabase
         .from('share_requests')
-        .select('id, sender_id, receiver_id, status, created_at, users!fk_sender(username, login)')
+        .select(
+          'id, sender_id, receiver_id, status, created_at, users!fk_sender(username, login)',
+        )
         .eq('receiver_id', currentUserId)
         .eq('status', 'pending')
         .order('created_at', ascending: false);
@@ -87,28 +89,17 @@ class EventShareService {
   // Aceita solicitação: insere em user_share e atualiza status
   Future<void> acceptRequest(int requestId, String senderId) async {
     final currentUserId = _supabase.auth.currentUser!.id;
-
-    
-
     await _supabase.from('user_share').insert({
       'owner_id': senderId,
       'viewer_id': currentUserId,
-    }).then((resp) => {
-      if (resp.error == null) {
-        _supabase
-        .from('share_requests')
-        .delete()
-        .eq('id', requestId)
-      }
     });
+
+    await _supabase.from('share_requests').delete().eq('id', requestId);
   }
 
   // Rejeita solicitação: apenas deleta o registro
   Future<void> rejectRequest(int requestId) async {
-    await _supabase
-        .from('share_requests')
-        .delete()
-        .eq('id', requestId);
+    await _supabase.from('share_requests').delete().eq('id', requestId);
   }
 
   // Contagem de solicitações pendentes para o badge

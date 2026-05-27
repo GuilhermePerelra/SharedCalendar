@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sharedcalendar/services/event_service.dart';
 import '../models/share_request.dart';
 import '../services/event_share_service.dart';
 import '../themes/app_theme.dart';
@@ -12,6 +13,7 @@ class ShareRequestsPage extends StatefulWidget {
 
 class _ShareRequestsPageState extends State<ShareRequestsPage> {
   final EventShareService _shareService = EventShareService();
+  final EventService _eventService = EventService();
   List<ShareRequest> _requests = [];
   bool _loading = true;
 
@@ -33,25 +35,30 @@ class _ShareRequestsPageState extends State<ShareRequestsPage> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao carregar solicitações: ${e.toString()}')),
+        SnackBar(
+          content: Text('Erro ao carregar solicitações: ${e.toString()}'),
+        ),
       );
     }
   }
 
+
   Future<void> _accept(ShareRequest request) async {
     try {
-      await _shareService.acceptRequest(request.id, request.senderId).then((_) => _loadRequests());
+      await _shareService.acceptRequest(request.id, request.senderId);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Solicitação aceita com sucesso')),
       );
       _loadRequests();
+      _eventService
+
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: ${e.toString()}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro: ${e.toString()}')));
     }
   }
 
@@ -59,15 +66,15 @@ class _ShareRequestsPageState extends State<ShareRequestsPage> {
     try {
       await _shareService.rejectRequest(request.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solicitação recusada')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Solicitação recusada')));
       _loadRequests();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: ${e.toString()}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro: ${e.toString()}')));
     }
   }
 
@@ -129,7 +136,11 @@ class _ShareRequestsPageState extends State<ShareRequestsPage> {
                               style: const TextStyle(color: Colors.white),
                             ),
                           ),
-                          title: Text(request.senderUsername + ' ' +  request.id.toString()),
+                          title: Text(
+                            request.senderUsername +
+                                ' ' +
+                                request.id.toString(),
+                          ),
                           subtitle: Text(request.senderLogin),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
