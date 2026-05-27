@@ -9,6 +9,7 @@ import '../widgets/event_list_item.dart';
 import '../widgets/create_event_bottom_sheet.dart';
 import '../widgets/edit_event_bottom_sheet.dart';
 import '../themes/app_theme.dart';
+import 'share_requests_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,11 +28,24 @@ class _HomePageState extends State<HomePage> {
   List<Event> _eventsOfMonth = [];
   bool _loading = true;
   bool _fabOpen = false;
+  int _pendingRequestsCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadEvents();
+    _loadPendingRequestsCount();
+  }
+
+  Future<void> _loadPendingRequestsCount() async {
+    try {
+      final count = await _shareService.getPendingRequestsCount();
+      if (mounted) {
+        setState(() => _pendingRequestsCount = count);
+      }
+    } catch (e) {
+      // Silenciosamente falha ao carregar contagem
+    }
   }
 
   Future<void> _loadEvents() async {
@@ -41,6 +55,7 @@ class _HomePageState extends State<HomePage> {
       _eventsOfMonth = events;
       _loading = false;
     });
+    await _loadPendingRequestsCount();
   }
 
   // Retorna eventos de um dia específico para o TableCalendar
@@ -257,6 +272,46 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         actions: [
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                tooltip: 'Solicitações',
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ShareRequestsPage(),
+                    ),
+                  );
+                  // Recarrega a contagem ao voltar
+                  await _loadPendingRequestsCount();
+                },
+              ),
+              if (_pendingRequestsCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: AppTheme.accentColor,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text(
+                      '$_pendingRequestsCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           Tooltip(
             message: 'Sair',
             child: IconButton(
