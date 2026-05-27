@@ -281,7 +281,8 @@ class _HomePageState extends State<HomePage> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ShareRequestsPage(focusedMonth: _focusedMonth),
+                      builder: (_) =>
+                          ShareRequestsPage(focusedMonth: _focusedMonth),
                     ),
                   );
 
@@ -305,7 +306,10 @@ class _HomePageState extends State<HomePage> {
                       color: AppTheme.accentColor,
                       shape: BoxShape.circle,
                     ),
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
                     child: Text(
                       '$_pendingRequestsCount',
                       style: const TextStyle(
@@ -587,7 +591,7 @@ class _HomePageState extends State<HomePage> {
             backgroundColor: AppTheme.primaryColor,
             onPressed: () => setState(() => _fabOpen = !_fabOpen),
             child: AnimatedRotation(
-              turns: _fabOpen ? 0.240 : 0.0,  // 45° para parecer um "X"
+              turns: _fabOpen ? 0.240 : 0.0, // 45° para parecer um "X"
               duration: const Duration(milliseconds: 250),
               child: Icon(_fabOpen ? Icons.close : Icons.add),
             ),
