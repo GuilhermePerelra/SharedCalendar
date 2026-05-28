@@ -58,7 +58,7 @@ class _EventListItemState extends State<EventListItem> {
       case 'declined':
         return AppTheme.errorColor;
       default:
-        return Colors.grey;
+        return const Color.fromARGB(255, 255, 255, 255);
     }
   }
 
@@ -115,22 +115,7 @@ class _EventListItemState extends State<EventListItem> {
                 ),
               ),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    DateFormat('dd/MM/yy').format(widget.event.targetDate),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.accentColor,
-                    ),
-                  ),
-                  Text(
-                    '${widget.event.targetDate.hour.toString().padLeft(2, '0')}:${widget.event.targetDate.minute.toString().padLeft(2, '0')}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              if (widget.event.category == EventCategory.agendado)
+                if (widget.event.category == EventCategory.agendado)
                 IconButton(
                   icon: Icon(
                     _statusIcon(_myStatus),
@@ -156,6 +141,21 @@ class _EventListItemState extends State<EventListItem> {
                     _loadStatus();
                   },
                 ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    DateFormat('dd/MM/yy').format(widget.event.targetDate),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.accentColor,
+                    ),
+                  ),
+                  Text(
+                    '${widget.event.targetDate.hour.toString().padLeft(2, '0')}:${widget.event.targetDate.minute.toString().padLeft(2, '0')}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ],
           ),
         ),
