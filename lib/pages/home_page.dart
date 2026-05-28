@@ -491,8 +491,10 @@ class _HomePageState extends State<HomePage> {
                             ),
                             itemBuilder: (context, index) {
                               final event = _selectedDayEvents[index];
+                              final isOwner = event.createdBy == _authService.currentUser?.id;
                               return EventListItem(
                                 event: event,
+                                isOwner: isOwner,
                                 onTap: () {
                                   final currentUserId =
                                       _authService.currentUser?.id;
