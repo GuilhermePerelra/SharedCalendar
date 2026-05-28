@@ -35,7 +35,9 @@ class AttendanceService {
   Future<List<AttendanceStatus>> getAttendees(int eventId) async {
     final response = await _supabase
         .from('event_attendance')
-        .select('id, event_id, user_id, status, updated_at, users!fk_attendance_user(username, login)')
+        .select(
+          'id, event_id, user_id, status, updated_at, users!fk_attendance_user(username, login)',
+        )
         .eq('event_id', eventId)
         .neq('status', 'pending')
         .order('updated_at', ascending: false);

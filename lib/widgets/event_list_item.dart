@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/event.dart';
+import '../models/event_category.dart';
 import '../services/attendance_service.dart';
 import '../themes/app_theme.dart';
 import 'attendance_bottom_sheet.dart';
@@ -129,31 +130,32 @@ class _EventListItemState extends State<EventListItem> {
                   ),
                 ],
               ),
-              IconButton(
-                icon: Icon(
-                  _statusIcon(_myStatus),
-                  color: _statusColor(_myStatus),
-                  size: 22,
-                ),
-                tooltip: 'Confirmar presença',
-                onPressed: () async {
-                  final eventId = int.tryParse(widget.event.id) ?? 0;
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
+              if (widget.event.category == EventCategory.agendado)
+                IconButton(
+                  icon: Icon(
+                    _statusIcon(_myStatus),
+                    color: _statusColor(_myStatus),
+                    size: 22,
+                  ),
+                  tooltip: 'Confirmar presença',
+                  onPressed: () async {
+                    final eventId = int.tryParse(widget.event.id) ?? 0;
+                    await showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
                       ),
-                    ),
-                    builder: (_) => AttendanceBottomSheet(
-                      eventId: eventId,
-                      isOwner: widget.isOwner,
-                    ),
-                  );
-                  _loadStatus();
-                },
-              ),
+                      builder: (_) => AttendanceBottomSheet(
+                        eventId: eventId,
+                        isOwner: widget.isOwner,
+                      ),
+                    );
+                    _loadStatus();
+                  },
+                ),
             ],
           ),
         ),

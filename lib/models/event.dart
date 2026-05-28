@@ -1,8 +1,11 @@
+import 'event_category.dart';
+
 class Event {
   final String id;
   final String title;
   final DateTime targetDate;
   final String? description;
+  final EventCategory? category;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final String createdBy;
@@ -16,6 +19,7 @@ class Event {
     required this.title,
     required this.targetDate,
     this.description,
+    this.category,
     required this.createdAt,
     required this.updatedAt,
     required this.createdBy,
@@ -23,12 +27,13 @@ class Event {
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
-    print('DEBUG event json: $json'); 
+    print('DEBUG event json: $json');
     return Event(
-      id: json['id'].toString(), 
+      id: json['id'].toString(),
       title: json['title'] as String,
       targetDate: DateTime.parse(json['target_date'] as String),
       description: json['description'] as String?,
+      category: EventCategory.fromString(json['category'] as String?),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)

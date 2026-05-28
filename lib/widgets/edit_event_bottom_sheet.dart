@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/event.dart';
+import '../models/event_category.dart';
 import '../services/event_service.dart';
 import '../themes/app_theme.dart';
 
@@ -22,6 +23,7 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   late DateTime _selectedDateTime;
+  EventCategory? _selectedCategory;
   bool _isLoading = false;
 
   final EventService _eventService = EventService();
@@ -33,6 +35,7 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
     _descriptionController = TextEditingController(
       text: widget.event.description ?? '',
     );
+    _selectedCategory = widget.event.category;
     _selectedDateTime = widget.event.targetDate;
   }
 
@@ -118,6 +121,7 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
+        category: _selectedCategory,
       );
 
       if (!mounted) return;
@@ -229,6 +233,32 @@ class _EditEventBottomSheetState extends State<EditEventBottomSheet> {
                 hintText: 'Digite a descrição',
               ),
               textCapitalization: TextCapitalization.sentences,
+            ),
+            const SizedBox(height: 16),
+           DropdownButtonFormField<EventCategory?>(
+              value: _selectedCategory,
+              onChanged: _isLoading
+                  ? null
+                  : (value) {
+                      setState(() => _selectedCategory = value);
+                    },
+              decoration: InputDecoration(
+                labelText: 'Categoria (opcional)',
+                prefixIcon: const Icon(Icons.category),
+              ),
+              items: [
+                const DropdownMenuItem<EventCategory?>(
+                  value: null,
+                  child: Text('Sem categoria'),
+                ),
+
+                ...EventCategory.values.map(
+                  (category) => DropdownMenuItem<EventCategory?>(
+                    value: category,
+                    child: Text(category.displayName),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             GestureDetector(

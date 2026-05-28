@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../models/event_category.dart';
 import '../services/event_service.dart';
 import '../themes/app_theme.dart';
 
@@ -22,6 +23,7 @@ class _CreateEventBottomSheetState extends State<CreateEventBottomSheet> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   late DateTime _selectedDateTime;
+  EventCategory? _selectedCategory;
 
   bool _loading = false;
 
@@ -112,6 +114,7 @@ class _CreateEventBottomSheetState extends State<CreateEventBottomSheet> {
         description: _descriptionController.text.trim().isEmpty
             ? null
             : _descriptionController.text.trim(),
+        category: _selectedCategory,
       );
 
       if (mounted) {
@@ -174,6 +177,32 @@ class _CreateEventBottomSheetState extends State<CreateEventBottomSheet> {
               textCapitalization: TextCapitalization.sentences,
               maxLines: 3,
               minLines: 1,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<EventCategory?>(
+              value: _selectedCategory,
+              onChanged: _loading
+                  ? null
+                  : (value) {
+                      setState(() => _selectedCategory = value);
+                    },
+              decoration: InputDecoration(
+                labelText: 'Categoria (opcional)',
+                prefixIcon: const Icon(Icons.category),
+              ),
+              items: [
+                const DropdownMenuItem<EventCategory?>(
+                  value: null,
+                  child: Text('Sem categoria'),
+                ),
+
+                ...EventCategory.values.map(
+                  (category) => DropdownMenuItem<EventCategory?>(
+                    value: category,
+                    child: Text(category.displayName),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             GestureDetector(

@@ -1,33 +1,43 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../models/event.dart';
+import '../models/event_category.dart';
 
 class EventService {
   final supabase.SupabaseClient _supabase = supabase.Supabase.instance.client;
 
-Future<List<Event>> getEventsByMonth(DateTime month) async {
-  final start = DateTime(month.year, month.month, 1);
-  final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
-  final currentUserId = _supabase.auth.currentUser!.id;
+  Future<List<Event>> getEventsByMonth(DateTime month) async {
+    final firstDay = DateTime(month.year, month.month, 1);
+    final lastDay = DateTime(month.year, month.month + 1, 0);
 
-  // A RPC já retorna os próprios eventos + eventos compartilhados via user_share
-  final response = await _supabase.rpc(
-    'get_events_by_month',
-    params: {
-      'p_user_id': currentUserId,
-      'p_start': start.toIso8601String(),
-      'p_end': end.toIso8601String(),
-    },
-  );
+    // início da semana visual
+    final start = firstDay.subtract(Duration(days: firstDay.weekday % 7));
 
-  return (response as List)
-      .map<Event>((json) => Event.fromJson(json))
-      .toList();
-}
+    // fim da semana visual
+    final end = lastDay
+        .add(Duration(days: 6 - (lastDay.weekday % 7)))
+        .copyWith(hour: 23, minute: 59, second: 59);
+
+    final currentUserId = _supabase.auth.currentUser!.id;
+
+    final response = await _supabase.rpc(
+      'get_events_by_month',
+      params: {
+        'p_user_id': currentUserId,
+        'p_start': start.toIso8601String(),
+        'p_end': end.toIso8601String(),
+      },
+    );
+
+    return (response as List)
+        .map<Event>((json) => Event.fromJson(json))
+        .toList();
+  }
 
   Future<Event> createEvent({
     required String title,
     required DateTime targetDate,
     String? description,
+    EventCategory? category,
   }) async {
     final session = _supabase.auth.currentSession;
     if (session == null || session.isExpired) {
@@ -42,6 +52,7 @@ Future<List<Event>> getEventsByMonth(DateTime month) async {
           'title': title,
           'target_date': targetDate.toIso8601String(),
           'description': description,
+          'category': category?.toDbString(),
           'created_by': _supabase.auth.currentUser!.id,
         })
         .select()
@@ -55,6 +66,7 @@ Future<List<Event>> getEventsByMonth(DateTime month) async {
     required String title,
     required DateTime targetDate,
     String? description,
+    EventCategory? category,
   }) async {
     final session = _supabase.auth.currentSession;
     if (session == null || session.isExpired) {
@@ -69,6 +81,7 @@ Future<List<Event>> getEventsByMonth(DateTime month) async {
           'title': title,
           'target_date': targetDate.toIso8601String(),
           'description': description,
+          'category': category?.toDbString(),
           'updated_at': DateTime.now().toIso8601String(),
         })
         .eq('id', id)
