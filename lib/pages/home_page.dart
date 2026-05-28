@@ -529,9 +529,9 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           // Mini-FABs que aparecem quando _fabOpen = true
-          AnimatedOpacity(
-            opacity: _fabOpen ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 200),
+          Visibility(
+            visible: _fabOpen,
+            maintainSize: false,
             child: Column(
               children: [
                 FloatingActionButton.small(
