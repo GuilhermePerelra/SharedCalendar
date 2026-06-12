@@ -35,9 +35,8 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
     setState(() => _loading = true);
     try {
       final myStatus = await _attendanceService.getMyStatus(widget.eventId);
-      final attendees = widget.isOwner
-          ? await _attendanceService.getAttendees(widget.eventId)
-          : <AttendanceStatus>[];
+      final attendees = await _attendanceService.getAttendees(widget.eventId);
+
       setState(() {
         _myStatus = myStatus;
         _attendees = attendees;
@@ -64,10 +63,8 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_statusLabel(status) + ' com sucesso')),
       );
-      if (widget.isOwner) {
-        final attendees = await _attendanceService.getAttendees(widget.eventId);
-        setState(() => _attendees = attendees);
-      }
+      final attendees = await _attendanceService.getAttendees(widget.eventId);
+      setState(() => _attendees = attendees);
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);

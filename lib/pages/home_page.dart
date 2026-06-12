@@ -114,7 +114,7 @@ class _HomePageState extends State<HomePage> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Calendário compartilhado com sucesso'),
+                    content: Text('Convite de compartilhamento enviado com sucesso'),
                   ),
                 );
               } catch (e) {
@@ -144,7 +144,11 @@ class _HomePageState extends State<HomePage> {
             children: [
               Icon(Icons.group_remove, color: AppTheme.accentColor),
               const SizedBox(width: 8),
-              const Text('Remover compartilhamento'),
+               const Expanded(
+          child: Text(
+            'Remover compartilhamento',
+          ),
+        ),
             ],
           ),
           content: sharedUsers.isEmpty

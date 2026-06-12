@@ -140,9 +140,7 @@ class _CadastroPageState extends State<CadastroPage> {
   Widget _buildLoginLink() {
     return TextButton(
       onPressed: () {
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginPage()));
+        Navigator.pop(context); 
       },
       child: const Text('Já tem conta? Faça login'),
     );

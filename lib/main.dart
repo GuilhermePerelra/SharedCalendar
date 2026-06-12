@@ -26,6 +26,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp.router(
         title: 'Calendário Compartilhado',
         theme: AppTheme.darkTheme,
+        // debugShowCheckedModeBanner: false,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
