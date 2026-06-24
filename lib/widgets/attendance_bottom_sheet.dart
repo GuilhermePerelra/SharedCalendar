@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import '../services/attendance_service.dart';
 import '../models/attendance_status.dart';
 import '../themes/app_theme.dart';
+import 'attendance_visibility_toggle.dart';
 
 class AttendanceBottomSheet extends StatefulWidget {
   final int eventId;
+  final String createdBy;
   final bool isOwner;
 
   const AttendanceBottomSheet({
     super.key,
     required this.eventId,
+    required this.createdBy,
     required this.isOwner,
   });
 
@@ -21,6 +24,7 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
   final AttendanceService _attendanceService = AttendanceService();
 
   String _myStatus = 'pending';
+  String _myVisibility = 'public';
   List<AttendanceStatus> _attendees = [];
   bool _loading = true;
   bool _saving = false;
@@ -34,11 +38,19 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final myStatus = await _attendanceService.getMyStatus(widget.eventId);
-      final attendees = await _attendanceService.getAttendees(widget.eventId);
+      final attendance = await _attendanceService.getMyAttendance(
+        widget.eventId,
+      );
+      final attendees = await _attendanceService.getAttendees(
+        widget.eventId,
+        createdBy: widget.createdBy,
+      );
 
       setState(() {
-        _myStatus = myStatus;
+        if (attendance != null) {
+          _myStatus = attendance.status;
+          _myVisibility = attendance.visibility;
+        }
         _attendees = attendees;
         _loading = false;
       });
@@ -54,7 +66,11 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
   Future<void> _setStatus(String status) async {
     setState(() => _saving = true);
     try {
-      await _attendanceService.setStatus(widget.eventId, status);
+      await _attendanceService.setStatus(
+        widget.eventId,
+        status,
+        visibility: _myVisibility,
+      );
       setState(() {
         _myStatus = status;
         _saving = false;
@@ -63,7 +79,10 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(_statusLabel(status) + ' com sucesso')),
       );
-      final attendees = await _attendanceService.getAttendees(widget.eventId);
+      final attendees = await _attendanceService.getAttendees(
+        widget.eventId,
+        createdBy: widget.createdBy,
+      );
       setState(() => _attendees = attendees);
     } catch (e) {
       if (!mounted) return;
@@ -167,6 +186,32 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                       ),
                     ],
                   ),
+            const SizedBox(height: 16),
+            AttendanceVisibilityToggle(
+              visibility: _myVisibility,
+              onChanged: (val) async {
+                setState(() => _myVisibility = val);
+                if (_myStatus != 'pending') {
+                  try {
+                    await _attendanceService.setStatus(
+                      widget.eventId,
+                      _myStatus,
+                      visibility: val,
+                    );
+                    final attendees = await _attendanceService.getAttendees(
+                      widget.eventId,
+                      createdBy: widget.createdBy,
+                    );
+                    if (mounted) setState(() => _attendees = attendees);
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erro: ${e.toString()}')),
+                    );
+                  }
+                }
+              },
+            ),
             // --Lista de convidados (apenas para o dono)--
             // regra removida, mas pode ser reimplementada para mostrar somente ao dono
             if (true) ...[
@@ -210,9 +255,25 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                       ),
                       title: Text(attendee.username),
                       subtitle: Text(attendee.login),
-                      trailing: Icon(
-                        _statusIcon(attendee.status),
-                        color: _statusColor(attendee.status),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (attendee.visibility == 'private')
+                            Tooltip(
+                              message: 'Visível apenas para você (criador)',
+                              child: Icon(
+                                Icons.lock,
+                                size: 14,
+                                color: AppTheme.errorColor,
+                              ),
+                            ),
+                          if (attendee.visibility == 'private')
+                            const SizedBox(width: 4),
+                          Icon(
+                            _statusIcon(attendee.status),
+                            color: _statusColor(attendee.status),
+                          ),
+                        ],
                       ),
                     );
                   },

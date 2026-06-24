@@ -135,6 +135,7 @@ class _EventListItemState extends State<EventListItem> {
                       ),
                       builder: (_) => AttendanceBottomSheet(
                         eventId: eventId,
+                        createdBy: widget.event.createdBy,
                         isOwner: widget.isOwner,
                       ),
                     );

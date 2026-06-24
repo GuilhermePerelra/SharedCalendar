@@ -5,6 +5,7 @@ class AttendanceStatus {
   final String username;
   final String login;
   final String status; // 'pending' | 'confirmed' | 'declined'
+  final String visibility; // 'public' | 'private'
 
   AttendanceStatus({
     this.id,
@@ -13,6 +14,7 @@ class AttendanceStatus {
     required this.username,
     required this.login,
     required this.status,
+    this.visibility = 'public',
   });
 
   factory AttendanceStatus.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,19 @@ class AttendanceStatus {
       username: json['users']?['username'] as String? ?? 'Desconhecido',
       login: json['users']?['login'] as String? ?? '',
       status: json['status'] as String,
+      visibility: json['visibility'] as String? ?? 'public',
+    );
+  }
+
+  AttendanceStatus copyWith({String? status, String? visibility}) {
+    return AttendanceStatus(
+      id: id,
+      eventId: eventId,
+      userId: userId,
+      username: username,
+      login: login,
+      status: status ?? this.status,
+      visibility: visibility ?? this.visibility,
     );
   }
 }
